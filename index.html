@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>🎀 Cờ caro - Game Caro X-O Dễ Thương 🎀</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <!-- Socket.IO Client -->
+  <script src="/socket.io/socket.io.js"></script>
+</head>
+<body>
+  <!-- Hiệu ứng họa tiết nền bay lơ lửng -->
+  <div class="floating-petals" id="floating-petals"></div>
+
+  <!-- Nút âm thanh nhanh ở góc trên -->
+  <div class="quick-audio-bar">
+    <button id="btn-toggle-bgm" class="btn-icon-audio" title="Bật/Tắt Nhạc nền">
+      <span class="icon">🎵</span>
+    </button>
+    <button id="btn-toggle-sfx" class="btn-icon-audio" title="Bật/Tắt Hiệu ứng âm thanh">
+      <span class="icon">🔔</span>
+    </button>
+  </div>
+
+  <!-- CONTAINER CHÍNH -->
+  <div class="app-container">
+
+    <!-- ==================== 1. MÀN HÌNH MENU CHÍNH ==================== -->
+    <section id="menu-screen" class="screen active">
+      <div class="menu-card glass-panel">
+        <div class="logo-wrapper">
+          <div class="sparkle left">✨</div>
+          <h1 class="game-title">🎀 Cờ caro 🎀</h1>
+          <div class="sparkle right">✨</div>
+        </div>
+        <p class="game-subtitle">Game cờ caro X-O xinh xắn, kịch tính & dễ thương 💕</p>
+
+        <div class="menu-actions">
+          <button id="btn-mode-ai" class="btn btn-primary btn-menu pulse-btn">
+            <span class="btn-icon">🎮</span>
+            <span class="btn-text">Chơi với máy</span>
+          </button>
+
+          <button id="btn-mode-online" class="btn btn-secondary btn-menu">
+            <span class="btn-icon">🌸</span>
+            <span class="btn-text">Chơi online</span>
+          </button>
+
+          <button id="btn-open-rules" class="btn btn-outline btn-menu">
+            <span class="btn-icon">📖</span>
+            <span class="btn-text">Cách chơi</span>
+          </button>
+        </div>
+
+        <div class="footer-note">
+          <span>🌸 15x15 Bàn cờ • 5 quân thắng • Realtime Socket.IO 🌸</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== 2. MÀN HÌNH CHỌN ĐỘ KHÓ AI ==================== -->
+    <section id="difficulty-screen" class="screen">
+      <div class="menu-card glass-panel">
+        <h2 class="card-title">🎮 Chọn độ khó</h2>
+        <p class="card-desc">Thử thách tài năng cờ caro cùng bé bot đáng yêu!</p>
+
+        <div class="difficulty-list">
+          <button class="btn btn-diff btn-diff-easy" data-level="easy">
+            <span class="diff-emoji">🐣</span>
+            <div class="diff-info">
+              <span class="diff-name">Dễ</span>
+              <span class="diff-desc">Máy đánh ngẫu nhiên, thư giãn nhẹ nhàng</span>
+            </div>
+          </button>
+
+          <button class="btn btn-diff btn-diff-medium" data-level="medium">
+            <span class="diff-emoji">🌸</span>
+            <div class="diff-info">
+              <span class="diff-name">Thường</span>
+              <span class="diff-desc">Biết chặn nước thắng và tấn công cơ bản</span>
+            </div>
+          </button>
+
+          <button class="btn btn-diff btn-diff-hard" data-level="hard">
+            <span class="diff-emoji">👑</span>
+            <div class="diff-info">
+              <span class="diff-name">Khó</span>
+              <span class="diff-desc">AI thông minh, phân tích nước đi tinh tế</span>
+            </div>
+          </button>
+        </div>
+
+        <button id="btn-back-from-diff" class="btn btn-outline btn-sm mt-3">
+          ⬅ Quay lại menu
+        </button>
+      </div>
+    </section>
+
+    <!-- ==================== 3. MÀN HÌNH CHỌN LOBBY ONLINE ==================== -->
+    <section id="online-lobby-screen" class="screen">
+      <div class="menu-card glass-panel">
+        <h2 class="card-title">🌸 Chơi online 2 người</h2>
+        <p class="card-desc">Tạo phòng gửi cho bạn bè hoặc nhập mã để so tài ngay!</p>
+
+        <div class="lobby-tabs">
+          <button class="tab-btn active" id="tab-create">🎀 Tạo phòng mới</button>
+          <button class="tab-btn" id="tab-join">✨ Vào phòng có sẵn</button>
+        </div>
+
+        <!-- Tab Tạo phòng -->
+        <div class="lobby-content" id="panel-create">
+          <div class="form-group">
+            <label for="create-player-name">Tên của bạn:</label>
+            <input type="text" id="create-player-name" class="input-text" placeholder="Nhập tên bạn..." maxlength="15" value="Bạn X xinh đẹp">
+          </div>
+          <button id="btn-create-room" class="btn btn-primary w-100">
+            🌸 Bấm để tạo phòng ngay
+          </button>
+
+          <!-- Trạng thái chờ sau khi tạo phòng thành công -->
+          <div id="created-room-box" class="room-waiting-box hidden">
+            <div class="room-badge-title">🎀 PHÒNG ĐÃ TẠO! 🎀</div>
+            <p>Mã phòng của bạn:</p>
+            <div class="room-code-display" id="display-room-code">------</div>
+            <button id="btn-copy-code" class="btn btn-secondary btn-sm">
+              📋 Sao chép mã phòng
+            </button>
+            <div class="waiting-indicator">
+              <div class="spinner">🌸</div>
+              <span>Đang chờ bạn bè vào phòng... 💕</span>
+            </div>
+            <button id="btn-cancel-room" class="btn btn-outline btn-sm text-danger mt-2">
+              Hủy phòng
+            </button>
+          </div>
+        </div>
+
+        <!-- Tab Vào phòng -->
+        <div class="lobby-content hidden" id="panel-join">
+          <div class="form-group">
+            <label for="join-player-name">Tên của bạn:</label>
+            <input type="text" id="join-player-name" class="input-text" placeholder="Nhập tên bạn..." maxlength="15" value="Bạn O cute">
+          </div>
+          <div class="form-group">
+            <label for="join-room-code">Mã phòng (6 ký tự):</label>
+            <input type="text" id="join-room-code" class="input-text uppercase-input" placeholder="Ví dụ: AB12CD" maxlength="6">
+          </div>
+          <button id="btn-join-room" class="btn btn-secondary w-100">
+            ✨ Vào phòng chiến ngay
+          </button>
+        </div>
+
+        <button id="btn-back-from-lobby" class="btn btn-outline btn-sm mt-3">
+          ⬅ Quay lại menu
+        </button>
+      </div>
+    </section>
+
+    <!-- ==================== 4. MÀN HÌNH BÀN CỜ CHÍNH ==================== -->
+    <section id="game-screen" class="screen">
+      <!-- Thanh điều hướng nhỏ phía trên -->
+      <div class="game-navbar glass-bar">
+        <button id="btn-nav-home" class="btn-nav" title="Về trang chủ">
+          🏠 Trang chủ
+        </button>
+        <div class="nav-center-info" id="nav-mode-badge">
+          🎮 Với Máy (Dễ)
+        </div>
+        <button id="btn-nav-restart" class="btn-nav" title="Chơi lại ván mới">
+          🔄 Chơi lại
+        </button>
+      </div>
+
+      <!-- Khung thông tin hai người chơi & lượt đấu -->
+      <div class="game-info-card glass-panel">
+        <div class="players-status-bar">
+          <!-- Người chơi X -->
+          <div class="player-card" id="player-card-x">
+            <div class="player-avatar x-avatar">
+              <span class="symbol-tag">X</span>
+            </div>
+            <div class="player-details">
+              <div class="player-name" id="name-player-x">Người chơi X</div>
+              <div class="player-role-badge">Đi trước</div>
+            </div>
+            <div class="turn-bubble" id="bubble-x">Lượt đi</div>
+          </div>
+
+          <div class="vs-divider">
+            <span class="vs-text">VS</span>
+            <div class="heart-pulse">💕</div>
+          </div>
+
+          <!-- Người chơi O -->
+          <div class="player-card" id="player-card-o">
+            <div class="player-avatar o-avatar">
+              <span class="symbol-tag">O</span>
+            </div>
+            <div class="player-details">
+              <div class="player-name" id="name-player-o">Máy (O)</div>
+              <div class="player-role-badge">Đi sau</div>
+            </div>
+            <div class="turn-bubble" id="bubble-o">Lượt đi</div>
+          </div>
+        </div>
+
+        <!-- Thanh thông báo trạng thái hiện tại -->
+        <div class="game-status-banner" id="game-status-banner">
+          🌸 Lượt của bạn (X) - Hãy đánh một ô thật đẹp!
+        </div>
+
+        <!-- Badge mã phòng nếu là Online -->
+        <div class="room-tag-indicator hidden" id="game-room-tag">
+          Phòng: <span id="game-room-code-label">------</span>
+          <button id="btn-copy-game-code" class="btn-mini-copy" title="Sao chép">📋</button>
+        </div>
+      </div>
+
+      <!-- BÀN CỜ 15x15 -->
+      <div class="board-wrapper">
+        <div class="board" id="caro-board">
+          <!-- 225 ô được tạo động bởi JavaScript -->
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- ==================== CÁC MODAL HỖ TRỢ ==================== -->
+
+  <!-- Modal Cách Chơi -->
+  <div class="modal-overlay hidden" id="modal-rules">
+    <div class="modal-content glass-panel">
+      <div class="modal-header">
+        <h3 class="modal-title">📖 Luật & Cách Chơi Cờ Caro</h3>
+        <button class="modal-close-btn" id="btn-close-rules">&times;</button>
+      </div>
+      <div class="modal-body rules-content">
+        <div class="rule-box">
+          <div class="rule-icon">🎀</div>
+          <div class="rule-text">
+            <strong>Luật cơ bản:</strong>
+            <p>Bàn cờ kích thước chuẩn <strong>15x15</strong> ô. Hai bên lần lượt đánh quân <strong>X</strong> (màu hồng xinh) và <strong>O</strong> (màu tím mộng mơ) vào các ô còn trống.</p>
+          </div>
+        </div>
+
+        <div class="rule-box">
+          <div class="rule-icon">✨</div>
+          <div class="rule-text">
+            <strong>Điều kiện chiến thắng:</strong>
+            <p>Người đầu tiên tạo được <strong>5 quân cờ liên tiếp</strong> theo một trong 4 hướng (Hàng ngang, Hàng dọc, Chéo xuống hoặc Chéo lên) sẽ giành chiến thắng rực rỡ!</p>
+          </div>
+        </div>
+
+        <div class="rule-box">
+          <div class="rule-icon">🤍</div>
+          <div class="rule-text">
+            <strong>Hòa cờ:</strong>
+            <p>Nếu toàn bộ 225 ô trên bàn cờ đã được đánh kín mà chưa có ai tạo đủ 5 quân liên tiếp, ván đấu kết thúc với kết quả Hòa.</p>
+          </div>
+        </div>
+
+        <div class="rule-box">
+          <div class="rule-icon">🎮</div>
+          <div class="rule-text">
+            <strong>Chế độ chơi với máy:</strong>
+            <p>Có 3 cấp độ: <em>Dễ</em> (ngẫu nhiên), <em>Thường</em> (biết chặn và tấn công cơ bản), <em>Khó</em> (AI heuristic phân tích chiến lược Gomoku chuyên nghiệp).</p>
+          </div>
+        </div>
+
+        <div class="rule-box">
+          <div class="rule-icon">🌸</div>
+          <div class="rule-text">
+            <strong>Chế độ Online:</strong>
+            <p>Một người tạo phòng và nhận mã phòng 6 chữ số, sau đó gửi cho bạn bè. Người thứ hai nhập mã là có thể kết nối so tài ngay lập tức!</p>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary w-100" id="btn-understood-rules">Đã hiểu! Đi chơi thôi 🌸</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Kết Thúc Ván Đấu (Game Over) -->
+  <div class="modal-overlay hidden" id="modal-gameover">
+    <div class="modal-content glass-panel text-center">
+      <div class="win-emoji" id="gameover-emoji">🎉</div>
+      <h3 class="modal-title" id="gameover-title">Bạn đã thắng!</h3>
+      <p class="modal-subtitle" id="gameover-message">Trận đấu thật xuất sắc! 💕</p>
+
+      <div class="modal-actions-row">
+        <button class="btn btn-primary" id="btn-gameover-rematch">
+          🔄 Chơi lại
+        </button>
+        <button class="btn btn-outline" id="btn-gameover-home">
+          🏠 Trang chủ
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Xác Nhận Chơi Lại Online -->
+  <div class="modal-overlay hidden" id="modal-rematch-confirm">
+    <div class="modal-content glass-panel text-center">
+      <div class="win-emoji">🌸</div>
+      <h3 class="modal-title">Lời mời chơi lại</h3>
+      <p class="modal-subtitle">Đối thủ muốn cùng bạn làm thêm một ván đấu nữa! Bạn có đồng ý không? 💕</p>
+      <div class="modal-actions-row">
+        <button class="btn btn-primary" id="btn-accept-rematch">
+          Đồng ý luôn! ✨
+        </button>
+        <button class="btn btn-outline" id="btn-decline-rematch">
+          Thôi nha 🥺
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Thông Báo Góc Màn Hình -->
+  <div class="toast-notification hidden" id="toast-notify">
+    <span class="toast-icon" id="toast-icon">🌸</span>
+    <span class="toast-text" id="toast-text">Thông báo</span>
+  </div>
+
+  <!-- Canvas Pháo Hoa Khi Thắng -->
+  <canvas id="confetti-canvas"></canvas>
+
+  <!-- JS Modules -->
+  <script src="js/sound.js"></script>
+  <script src="js/ai.js"></script>
+  <script src="js/game.js"></script>
+  <script src="js/online.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
